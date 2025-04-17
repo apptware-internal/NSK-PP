@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nashik Police AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f5f7fa;
+        }
+        
+        .chat-container {
+            height: calc(100vh - 180px);
+        }
+        
+        .message {
+            max-width: 80%;
+        }
+        
+        .user-message {
+            background-color: #2563eb;
+            color: white;
+            border-radius: 18px 18px 0 18px;
+        }
+        
+        .bot-message {
+            background-color: #e5e7eb;
+            color: #111827;
+            border-radius: 18px 18px 18px 0;
+        }
+        
+        .emergency-message {
+            background-color: #ef4444;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        
+        .typing-indicator span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #6b7280;
+            margin: 0 2px;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+        
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+        
+        .file-upload {
+            border: 2px dashed #d1d5db;
+            transition: all 0.3s ease;
+        }
+        
+        .file-upload:hover {
+            border-color: #2563eb;
+        }
+        
+        .suggestion-chip {
+            transition: all 0.2s ease;
+        }
+        
+        .suggestion-chip:hover {
+            background-color: #2563eb;
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .document-item {
+            transition: all 0.2s ease;
+        }
+        
+        .document-item:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .source-document {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        
+        .source-document.expanded {
+            max-height: 500px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto max-w-6xl px-4 py-6">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8">
+            <div class="flex items-center mb-4 md:mb-0">
+                <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxMSEBUSExEWFhUVFxYXGBgVFxcWGRcXFxcXGBoeGBgaHiggGB4lIBsaITIiJSkrLi4uFx8zODMtNygtLisBCgoKDg0OGxAQGysmHyYrLy4vLS4rKy0tMDAtLS0tLS0tLSstLS0tLS4tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAOEA4QMBIgACEQEDEQH/xAAcAAEAAgIDAQAAAAAAAAAAAAAABgcFCAEDBAL/xABNEAACAQMBBQUEBwUEBwUJAAABAgMABBEFBgcSITETIkFRYRQycYEjUmKCkZKhCDNCcrEVU8HCJENzg6Ky0VSTw+HxNDVjZKOz0tTw/8QAGgEBAAMBAQEAAAAAAAAAAAAAAAECAwQFBv/EAC8RAAICAQMCAwcDBQAAAAAAAAABAgMRBCExEkETUZEiMkJhcYGhI8HwFDNS0eH/2gAMAwEAAhEDEQA/ALxpSlAKUpQClKUApSlAKUrg0BzSvHf6nDAvFNMka+bsF/rUP1Pe5pcOQJ2lI8Io2bPwZgFP41eNcpe6hknlKqC738W4/dWczeXGyJ/TirFvv7l8LBPnMx/yVstHc/hI6kXnSqLG/uXxsE/75h/krI2m/mE/vbKRf5JFf+oWj0dy+EdSLjpVeabvj0uXHHJLCT4Sxk/rHxCplpeuW1yMwXEco+w6sfmBzFYzrnD3kxkyNK4BrmqEilKUApSlAKUpQClKUApSlAKUpQClKUApSlAK4zWJ2k2jt7GEzXMgRegHVnPki9WP9PGqB243rXV6WjhJt7c8uFT9I4+246fyry+Nb06edr248yG8FwbW7zbGxJQydtMP9XDhiD9pvdX4Zz6VUO0e+HULnKwstsnlH3n+cjDl90Cq7pXq1aKuHO7KOTO67u5JW45JGkY9Wdi5PzbnXTSldiSXBUUpSpApSlAK+4pWVgysVYdCpII+BFfFKhrIJzs5vV1G1wDN28Y/gn7xx6Se9+JPwq29k97lld8KSn2aU8sSEcBP2ZOn5sVrXSuW3R1z7YZZSZuqrZGQc5r6rVnYveNeacQqt2sHjDISQB/8NuqH9PStg9j9s7XUo+OB++uOOJuTp8R4j7Q5V5N+lnVzx5l08kjpSlc5IpSlAKUpQClKUApSlAKUpQCofvB28h0yLmBJO4+jiBx95z/Cv9eg9G8bbiPTIAeTzyZEUfw6s3ko/Xp8NY9U1GW4leaZy8jnLMfH4eQHQAcgK7dLpfFfVLgq3g9O0Ovz3szTXEhdz08FQfVRf4R//czzrF0pXtKKisIzFKUqwFKUoBSlKAUpSgFKUoBSlKAV6tM1CW3lWaGRo5EOVZTgj/qPQ8jXlpUNJrDBspu03lR6gBBNwx3QHQHCygdSnkfNfwz4WHWlcEzIwZWKspBVlOCpHMEEdDWx+6jeENQj7Cc4uo15+AmUcuIfa8x8xy6eNq9J4ftR4NIyLFpXANc1wFhSlKAUpSgFKUoBWJ2o16KxtZLmY91ByA6ux91V9SeVZU1rdvn2v9svDbxt9BbEqMdHl6O3rj3R8D51vp6XbPp7EN4IdtLrst9cvczHLOeQ8EUe6q+QH9cnxrF0pX0EYqKwjIUpSrAUpSgFK7rSzklOI43c+SKzH8AKzllsLqUvuWFx9+Mxj8XxmqOyMeWSR2lZnaLZe6sTGLqLszICVHErZC4B90nHUVh0Uk4AyTyAHUn0qVJNZRBxilX1bbqVOhmBlAvGxPxdOGULyjJ+rwnhPhkk1Q8sZVirAgqSCCMEEHBBHgayp1EbW8diWsHzTFTXYrdvcanbPcRSxoEkMfDJxd4hVYkEA8u8Ky1rut1e0njniiilaJ1cBJV54PQh8ciOXzqJamtNrKyMMrSlXDttsx7bFJOmlTWV1EpkKqoeGdB7wDR90SDqOQ4uY5+FQSoVYqwII5EEYI+IPSrU3KxbchrB80qbbG7tLrUYDcRvHGnEVUyFsuV64Cg4Hhn41gtp9l7rT5ezuYiufdYd5HH2W8fh1HiKlXQculPcYMNXp06+kglSaJykkbBlYeBH9R4EeINealaNZWGQbYbv9rU1K0WYYEi92VPquB4fZPUfHHUGpPWqe7battOvkkJ+hkwkw+wf4seann8MjxramKQMoZSCCAQRzBB6EV4Gqo8KeFx2NU8n3SlK5iRSlKAUpSgIbvW2m9g06RkOJZfoovMMw5t91cn44rVo1ZG/XXvaNS9nU9y1UL6GRwGc/Lur901Edm9lLu/JFtCXCkBmyFVc+ZJr29HCNVXXLuZyeWYWlXFo+5QLwm/vUTiIAjhxliTyAkfGT6BT1617dQTTNI1GO3hsDcSvGAFfDESs47Iq8nIcQLglenAPWrPWwbxBZY6SpdG2au7v/wBntZZB9ZVPD+c90fjU0ttzN92LyzPFFwIzBAeN2KgnHLCrnpnNWxNtM8AkS9mtrd2iJiggLzSocHDMeEZ8MAJjI6moLun12bUfbrC9meUzxEgyE5XkY3AH8OOJTgYwRXM9VbOLksJInCOdD3e6K3S+e7kCcfZRSRhmGMnCL3ifTirJxvpMGkvqdnpkcojbgxN7474QkluMjGQcf0r63d6bpqxiW2hD6laRskkZkKM0wUq/Jjw4JyA3hmsRsEJZ9P1mxnjKTd+YowK4eRWJAU9AGQfiKxk3LLbeE1zt+CTLaJthdPs/7TaRIZ7aRImjRGfMa8I5qDnJUgkjyPSpTa3TRMl/fXpto5olHskzRhI5CATwvyJOBnByRlvlrTpGtXFsxe3nkiZhglGK5HqOh+dXZpmkf2/p9rLfdtEYOJQ6lMXPQFlB5gng8uucZ8L6jTqt5fut/chPJS2v38ks78c7zBXcIzuz93iOOEk9CMHlU93HbI+03RvJFzFbkcGejTdR+Qc/iVrB7VaTbT6olnpcMiZ4YisgdfpQTxHDd5QFwST5E489iNHsINMsFj4gsUEZLueWcDLu3qTk1rqdRipRjyyEtzKG6TtBFxr2hUuFz3iilVLY8gWAz6iqH37bI9hOL+Jfo5ziUDosuOvoGA/EHzqOXO8GZtYGpDICtwrH/wDL8xwH1IJP8xzWxN/awalYFCQ8NzGCCPJgGVh5EHB+IrmUZ6WcZPuW5Km3C3Cx22oMGJkVVcRjrhUcggeOTy+QrJ7jdfvLprlrm5eSKJIwOPBAZixPPGeQXz8aqO6jutLvnRXaKeBiA68sg8wcdCrDBwfA1Zuyu8t59O1BbqYe0JDI0PdVAwKFeWOrBjk+hGPGt9RS2pTjupY+xCZLbDbeZdBOqTojPliqDKKQZezQE8/DnmsRp96ZLdpNT0F2jd5JjKFjmZVkZnGU5SKFUheQzhc8qxG0WsRRbNaaEIdTJbiQDziDSSKfUMMVn9rtrng1Gymed00yaLj4olBV3IZgHOCSCOHkOfM+tcyg1wuW/wAE5MpoMemXunzWlhcPHETxP2LMkkXE3Fy7QZVSVII6Y4q811sJO+mXFjNcC6XBe0kccMkbgHhVmycrnHez0ZhjGKwGx+1C311JZ2elJDZTLIk8iDgcKUYcTsg4Q3PkuSefWu/ZWVtM2du7hZST2k/YM3MDD9hEQpyMFhxY6HiqHGUXtzlbf9BSmqaPPbHE8Lx95lyw7pZThgGHdYgjHI14avfYbaG+eK3hvdPWa0vGYLKFB5uWcmVOYwSScnh5edfOu7t9Lu55YbO5FtdRnDRe8ucA/u2IIGPFTjn0r0FrOmXTNfdblekoqtidxW03tNkbV2zJakAZ6mFvc/Kcr8AtU7tbsHe6d3p4wYsgCWNuJCT0HPDA/EV27rtd9j1SCQnuSN2Mn8shAyfg3C3yNX1MY3U5juFszaulcCua8I0FKUoBXm1K7WGGSVvdjRnPwUEn+lemoRvk1DsdGuMHBk4Ih8HccX/CGq0I9UkgzWa/u2mlkmf3pXZ2+LsWP9ay+ym0l3Zl0tZhEbgojMQuBgnhOW5LjiPPwFYGlfSOCcelmRsztNo1r7PZ3mpznislUmWIth5G7Pn3QWPeUEYx1NQ7fUqXFrZavbMcZC8YBDAN34yfFSrKw+LCqm/tu57A23tEnYnH0ZclOXMYU8h8q9NttNcpaPZdpxW8n+rcBgp4g/Eh6oc8+RxzPKuCGjnBqWeH+C3UXVtVtfdWtjpskciL7VHF2948facBKIc8C8iTlj90ioxtxtpDb63b3VqUmMMIWdkIVZi/FkEjlkKQc88HA8Ki2zm8a6tLf2VkiuLfmBFOvEFB54BHh6HPpisBruqJcScaWsNuMe7AGCn1PEx5/DFTVpcSxJbb/fJDZktsdXjk1F7yzkdO14ZRjMckUjDDjI6HOTkHHe616rreJePNBc8SrcQoY3kUY7eMkELMg5MBz/NnkRUTiiZ2CopZj0VQST8AOtTbQN1OpXOCYewQ/wAU54T/AN2Mv+IFbzVMEuvsRuQc9eQx6eVe63vLhkS3R5WVX7RI1LHEnTiVRzDeoq8dB3H2keGupnnPiq/RJ+nfP5hVhaRoVraJiCCOIDqVUA/eY8z8zXNbr6+IrJZRZAt0Gy1wpfUb/tDcyARx9tkyLGoAy3FzDHAHPnhfWsLv32tyV0yBsnk8/DzPmkfL8xH8tW9qmqw20RmmkVEGOZ8SegUDmxPgBkmo5podi8ttp8Vsrks012OGWQnnxGNe/wDnZT6VwxtzZ4kkWxtg1n/sW5xn2abHn2UmPxxVw7g9qeTabKe8vFJCD5Zy6fI97Hq3lU9/tKfi4RqWnlvq9mf/ANjNY/VbYCSO4u9PBaJg63diS7pjxeMASMp5ggCQYJz51vbqfFj0yRCWDA79tke3gF/Ev0kC4kx/FDnr9w8/gT5VQJrcq0uYbmEOjpLFICAVIZWB5Ef4YqtdY3H2cmTbzywnwU4lQfjhv+KraTVquPRMhxKD9ofg7Pjbg4uPhyeHixjix0zjlmpVs3tqYbWSxuYvaLR1bCE4aJ+oaNj0588fMeuZ1ncxqMOTF2dwo+o3A35XwPwJqD6rolzbHE9vLFzxl0ZQfgxGD8jXf103LGUV3RIbPeLdw6aNPi4I1wwMqgiQq5JIz0B5kcWM49edZDW9to59Bt7BF4JI5FWReeGjjUlXB9SRkeYPpVf0qz09eU8d8jLL22M26ePZ5pIohLNY8MboWxiMnuOccyAM/kNerdtBZX13NrCpKkq5EiSYaKOV1y7xv1Pd88YDHlzGKZ2X2klsnkZFV0ljaKSOTPA6sD1AI5jwPx86zmg7cG20a5sF5SSuOBgOkcgxLk+eFAHj9J6Vx26Vrq6e7/D5LJnm2/22n1CaRTITbLKzQx4AAAHApzjJJHPn0LGokaUr0IVxhHpRU262H1b2vTre4Jyzxrxfzr3W/UGs7VWfs+agX06WEn9zO2PRXVWH/FxVadfO3Q6LJR+ZouBSlKzJFVL+0VcYsreP605b8kbD/NVtVSP7SEvOyT/bt/8AaA/xrp0izdEiXBS1KUr6AyFKUoBXbayKsiMyB1DKWQkqHAIJUkcxkcsjnzrqpUPdA2w2DFhJaJNYwxxo45hVAZWHVXPXiHqa+tr9tLbTVU3HaZfPAEQtxY6ji90H0JrX/drts+m3OWy1vJgSoOePJ1H1h+o5eVbE63pVtqdn2b4eKVQyOpBxkZV0bz514N9HhW+3ujRPKKi13fnO2Ra2yRj60pMjfJRhQfjmuzd1Pcai8uoaldO9raAtwMeGIyAcfNFwpCDBxjqV+dcbXbMzadctBMPVHA7sieDL/iPA1bWzenD+xtLsj0v7gvL9qJC87D5rGi/Ouu6FUKk61z3IWcnt1HXUghGsXyFpXyLG1Y4ESEd048JGHeZ8cgQB61i2p6lrt2ITLniy3ACUhjQdSQM8h5nJ513b5daNxqsiZ+jtwIUA6DHNzjzLEj4KPKpxsDHHb6C8iIokntr6V5Md49iQqjPkA3SoUVTUp49p8fIcvB12O7bTOGO1kZmla1e7a7ik7nCHRRwKcqUIYkHHRfXlD5tWvtCvexiuTLFhJFV8mOWJxlTwE5Q9RyIORUxlYrAB0K7N/r9Hmu/a3ZuwuL21juZZvaLq3SOJY+EJHwRnDOTzbLZAA/8AOs67N/1N0xjyMjoO0UcsLapZIV4SPb7Qc+X8UqAf6xV7wIHfVSD3gMY3eFtlqGmXKSQSxzWlyvaRCVAwUjHEoZCrEYKsMno3pUI3Sam1prCQse5MzW8gPQnnw8v5gB941LturANolzDjJ028KR+kT8LIB6BJgv8Au6OqMLknun+/+hnY7dJ37ocC5s2X7ULhh+VsH9TU/wBmNsbLU+NYGL8IBdXjYYB5DORwnPlnwrW7Y3ZSfUbjsYeQGDJIRlY18z5k88L4/jWxKR2WhacT7saDmeXaTSH/AJmP4ADwAqNXVVB4h7xMWzAbz9E0e2tmnntEEjZEYhJieR/u8sDqSQcCtd2NZra/aebUblp5jjPJEB7saeCr/ifE1hK9DS0yrh7T3KNilKV1EClKUBcP7OVxie8j+tHE35Gcf56vatdv2fJcanIv1rZ/0kj/AOprYmvB1yxczSPApSlchYVSH7SEfesm9Jx+sRq76qL9oy3zaW0mPdmZfzRk/wCSunSPF0SJcFC0pSvoDIUpSgFKUoBVr7mNvvZ5BY3DfQSH6Jyf3Tk+6fsMfwPxOKopWV1Stj0slPBtltxsjFqVsYZO64y0UmMmN/8AFT0I8fiBUfstPe1k0KKUANELiFsHI4/Zm6HyPCcfGvBuV25a7j9inJaaFMo558cQIXvH6y5AyeoIPM5qXbd2byW4eDBuLZ1uYl8WMR7y/eQsn3hXhSU65eHL+ZNOdzWrbqFk1O8VuvtEp+TOWH6EVZunbVQaboFms0Hbyzx3ASInCmJ5O9xnB7p7oxg5/E1hd7mkLcCPWbXvQXCqJcdY5V7ve8ugU+RT1rFbaw9rpml3MfeRIWtpMfwSo2cMPAnJPyr0X02wgn57+hTg9U+9qZ8q1jZmMxmHh4GB7FsZjDhuS8hyAxyFejQtpW1TaGxlMQiEeEVFYsAsaO+ckD1qK2WhRy6VPdqx7a3njVl8OxkXAOPA8fj8aye56I/2vFJ/DDHPI5+qghdcn5sv41eddShJxW6yhk6dkbUza/AF/wC2dp8o5DIf0WrkbR2vo9YhRgvb3SxhiMgdnDbqxx44wfmPCodux0v2KCfWbhDlgy2qEd6UyHAKjrl2wq+mT0OatrZDS2trRI3IMp4pJiPGaVjJJ8uJjj0Arh1NuZbdsIskebTNOtNHsSARHDGOKR29528WY/xMegHwArXXeBtpLqdxxnKwoSIo/qjzbzc+Pl0rPb6drJri9ez9yG2fAUH33x77fjyHgPjVcV2aPT4/Unyysn2FKUr0CopSlAKUpQFm/s+x51SQ+VtJ+skX/nWxVUP+znb5uLuT6sca/nZj/kq+K8HXPNzNI8ClKVyFhUD32WHa6PMQMmJo5R6YYKx/KzVPK8WtWIuLeWBuksbofvKRV65dM1L5kM01pXZcwNG7RsMMjFWHkVOD+orrr6VPKMhSlKkClKUApSlAWt+ztb5v55Pq2/D+eRD/AJake+PaeWw1GxmhPNI5SyE8nR2QFW9Dw9fAgHwrwfs4Qc7yT/Yr/wA5rBftBT8WqRr9S3T8WeQ/9K8pxU9W0/5sX+Em2jXCzB73S1We3n53unuVDB2GGaMHkHPip7r+B8vjRtC05mlitp1SOfBn0+9DKQR0MauVkiYH+IcQ6emKM0nU5raUSW8rxyDkChwT6EfxD0OavfY6TVb9FGoWFq8HLv3MfBIR5iPnn5hapfS6t09vyE8kl2d2DsLLtTEhKzLwOJX41K5zjB5H51ir06JYB40SLjlI4oLfMss3iEKKS3D9k4XzFZxt3+mHn7BD+Xl+HSo5tYbzTUY6ZpVsI/GSJeKQDxJiVVP4Fq5YvrljL389i3B5tS1Ax8OqaovYxw59isQRx8eMB5AOsmOg6IOfI16dy20cl6l7JK2XNwJMDoqvGqqB6AJj5VQeuazcXcpkuZWkfp3uXD6KvRR6AVZ37Od1i4u4s+/HG/5GYf567LtN0UuT52Kp7kV3y2/BrNx9vs3/ABjUf4VCqsnf/Fw6sp+tbxn8GkX/AAFVtXfpnmqP0KvkUpStyBSlKAUpSgNgP2edP4LGeYjBlm4QfNY1GP1Zh8qteo3u70n2XTLaEjDCMM38799v1NSSvm7p9dkpfM1XApSlZEiuDXNKA1n316F7NqjyAYjuR2q4HLi6SD1PEOL79QCtmd82zXtmnM6LmW2zKmOpUD6Rfy88eaitZq93RW9daXdbGcluKUpXYVFZvY7Z8395HbBuBWyzv9SNBlj+HIepFYSrB3Iso1GQuMqLWctj6vczj5VlfJxrbRK5MrokVlNM8OnaTHcRwjMlzezMq45jiIxhQcHGOZx0FZdtn7C6jPDZWknCMk6Xdlpl8yIZUQMB16k+ld2yOy9otlfi3nN7b3awhY4OFbiMKX6h2A4l4wcHGeE8vCsVouz+n6dex3LzX+YiSqSWcq5bBHNwuCOfh1rynJZeG89uS2Cdbodno7S3leG4E8Nw4eN+EowVRwlXU9GVgQfgenSsNtbuxn1LVZbiSZYrfESrw9+RwqLxYHRe8WGST06VMdgr+Ga2ZoLeSCLtpuFZQQzFnLs2CTgFmPLwrr17XL4EpZaeznOO2uHjhiHqFLdo/wCArnjZYrG1yW2wfezexFhpw4ooV4wMmaXDP694+6PhgVhNq97ljaZSEm5lGe7ERwA/ak6flBqDbTaDql2f9P1ayiT+7NxwoP8AdquG+JJPrUcbY7T0/ea7b/7uGSX9VNdFdMJPNks/TJVvyMjPvq1EzCRRCsYP7rgJBHqxPFn1GPhVkbJb3bK64Um/0aU8sSHMZP2ZPD7wHzqqI9ktKbpr0f3raVf6kV3x7ubeUf6Prdm7eAcmP/En9K3sr00ljDX2YTZdm0+wtjqI4pYgHI5TRYV+nI8Q5OP5s1E9h928+l6oJllWW3eORC3uOuSGHEvQ81HMH5Co/s7oG0Gm49laO4h/u1mR4yPshypX7uKtHZ/aOSUBLqymtZT9Ze0iJ+zKmQPvY+dcc3OEXGMsxJ5Idvg2NN3PDctPHBDHGUkkcMzZL9xUjXm7EkgDIrC2+7e1jTJsL64Pm0tvAW9Ui7QMPg2D6VOd5N9aRtY+1TmILdLMp4GdW7IHIYLzHvjBx1qqNR0C0ubt55NoYSGcsGcSdoq8WQBkgAjwxyGK0pnNwS6ml9H+waOm72b026kMFnJPaXYJUW96Bwu4/hWQE8LHwz18vGoBcwNG7I4KshKsD1DKcEH4Grn2p2aE+uW9yWCWgjtXa4chRMynCBWPvyNhF5c8fKq73nAf2xeY/vT+OBn9a7dNa2+nOds/Qq0RilKV3FRUk3eaEb3UoIMZTjEknLI7OPvMD8cBfvVG6v7cFs12Vs9669+4PDHnwiU9fvNn5KK5tXb4db8yUty2BXNKV8+ailKUApSlAfLCtYN6+yJ0++bgXEE+XiPgvPvJ909PQitoaj+2+zEeo2j278m96N8Z4JB0Pw8CPEE10aa7wp57dyGsmpFK9erabJbTvBMvDJGeFh6+Y8wRgg+RryV9AmmsoyFTndIpNxeY94WF1w488LUGqbbndTjg1WPtSAkyPCSeQy+OHPxIA+dY6nPhSwSuSN7OxI1wivM8KnI7SNWd15csKnePPHSrem2R1u25W2tCUZKhZJSGyOoAk4xkeWaw99sfd6JqSXtvC9xbK5P0Y4nWNuTI4wSDg8m6ch0qUaPtVZ6llclpI2kdZLqKPghErxqoYAcBcglF6k+OedcN9rk1KG6x5ZLJETv9O2pY8Lm5+Mc0Sj8yMK8a7tdcuP3xIz/f3Ib/AJWY1PtC1JAZme8WWRL2QzI7FWghF0sYOVK8K91XYnK9BgAk1HdO3j2UXZ9oZjKjvG5GHj7NHuGRlPVi3aAf+nOkbrOIRXoMIx+m7oF4+GfUYgQIyywKZCBIwVMscAcRIxy51EDpUCasbURyzxLO0QQMqyyYJUANyUEt8OVTW12i1B5Ua10uSeDhtTwzwOQJbdFXjR1ICnkME56A4qPajsRq81zJcrYSIzytKAGTuksWGDxDofGtqpzy/EkuPNEP5E2fYHSyZQLeYCJXyfaQWMscYkkjRQCCVyFJzjPnWPi3b2nDJLLb30IhUSMpmtJgwBUsoCd7IByc4wPiKXMm0bMT7CF4kdJAioqzF04C8mJObgYwRjoOVY+4XX1EpexdjLGkbssfE5RccWAhIDSAKGbhyQi9MVivE/zXqTsTXUNO7a9kga4mW3PGqqbV4lhMaEhra7jHCvDw8wxwcEEGoha6Hryxiaz1H2qInCtFdcY5HHSUgD4V9X28+5SQC6sGhU9oCuZUZlZJQFKvhThpMk4zyHlUo0vaWz1GMw8SnnHMLbHE7LG0kxjACqrHkF4RnAxktmqJWVrLWV6jZkK1G92k5JNBPKPDis4bgD59kwFfOnrtA37qzKevsNrAfxaJaldpvChgLxXFxN2hMfAGjEXZ8caxmOUKQsbRkEnA/Wu1ds7FZB216xEj3qAo/aII31BmXjAOUJjCcDHkFJ9Kv4kkv7a9Bj5lW3VxeNqcUd5K7zRzxqQ78YVuNeS4JUfKm8z/AN73n+2b+gqc7KbHS32ty37KRaJdSTJIRgTYkLRdn9ZfdPF0wMeNV/t9drNql3IhyrTPgjocHh5fhXXTJSsWO0SGYClK7IIWd1RVLMxCqo5lmJwAPia7G8FTO7DbMvqF7HbqDw+9Kw/hjHvH4n3R6kVthaWyxRrGihURQqgdAqjAFRLdhsYNNtAGwbiXDTMPA+CA+S/qcmpnXg6u/wAWe3CNYrApSlcpIpSlAKUpQClKUBX+9Td+uoxCWIBbqNTwnoJF68DH+h8CfI1rZcwNGzI6lXUlWVhgqR1BB6Gt06rzebu3TUFM0PDHdKPePJZQP4Xx4+TeHTp079Jq/D9mXBWUTWulenUtPlt5WimjaORDhlYYI/6j1HI15q9lNNbGZOtmd62oWarGWWeNcALNksAPBXBB/HNSgb37ObndaQrHzBjlyfPvoCPxNU7Sueekqk849CcsuI7wNBJJOjcz1+hgOeeefe5867E3u6fbj/RNICnw/dQj8UVjVM0qv9FX3z6k9TLS1HfjfOfooIIh6hpG/EkD9Kw0u9vVmOfaVX0WKP8AxBqDUq60tK+FEZZNhvY1b/tf/wBKL/8AGvVBvj1VessTfzRL/lxVf0qXpqn8KGWW9Y78ZGXgurCKUHrwMVH5HDA/iK9EW2OzszcUuntC+c8SxBcHrkGFs59cVTNKzeir7ZX0ZOWXVd3uypPaMGdmOTyuSxP2smuuLbjQLQg22ms7DoxjUEfekYn9KpmlR/Rx7yfqMlk7X74Lq7RoYEFtEwKsQ3HIwPLHHgBQR5DPrVbGldkEDOwRFLMxwqqCSSegAHMmt66oVL2VgjOT4UZq/wDc/u69lC3t0v07D6NCP3KnxP2yOXoDjqTTddutFtw3V4qtPyKR8isPq3gz/oPDnzFrCvM1er6/YhwWjEAVzSlecXFKUoBSlKAUpSgFKUoBXBrmlARnbPYq21KPhmTDr7kqYDp8/wCJfsnl8DzrXrbPYC705iZE7SHwmjGV+8OqH48vImtq6+JIwwIYAgjBBGQR5EeNdNGqnVsuPIhrJpXStidrdzdpckyWxNtIeeFHFET6p1X7pA9KqLaLd1qFkSXt2kT+8hzIvzwOJfmBXrVauuzvhlGmROlKV1FRSlKAUpSgFKUoBSpFs7sRfXpHYWz8Bx9I44I8HxDt733cmra2T3JwRESXshnbr2aZSIfE+8/6D0rmt1VdfL3JSZUWyex93qMgW3i7ue9K3KNPi3ifQZNbCbB7urbTV4wO1uCMNKw6eYjH8A/U+JqW2lqkSCONFRFGAqgKAPQDpXfXk36udu3CLqODgCuaUrlLClKUApSlAKUpQClKUApSlAKUpQClKUArgiuaUBgda2OsbvnPaxu31uHhf864NQrUtx9i5Jhmni9MrIo+TDi/4qtOlaQush7rZGEURdbh5h+7vo2/miZP6M1YyTcfqIPKW2P35B/4dbFUrda65d/wR0o10XcfqPjLaj/eSH/w6yNruIuD+8vYl/lR3/qVq+qUeuuff8DpRU2mbi7RcGa5mlI6hQkSn5YYgfOppouwenWpBitI+IfxOO0b8z5x8qktKxnfZP3pMnCOAK5pSsiRSlKAUpSgFKUoBSlKAUpSgFKUoBSlKAUpSgFKUoBSlKAUpSgFKUoBSlKAUpSgFKUoBSlKAUpSgFKUoBSlKAUpSgP/2Q==" alt="Nashik Police Logo" class="h-16 mr-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">Nashik Police AI Assistant</h1>
+                    <p class="text-gray-600">Your digital gateway to Nashik City Police services</p>
+                </div>
+            </div>
+            <div class="flex space-x-4">
+                <a href="https://nashikcitypolice.gov.in" target="_blank" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center">
+                    <i class="fas fa-globe mr-2"></i> Official Website
+                </a>
+                <button id="emergencyBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center">
+                    <i class="fas fa-phone-alt mr-2"></i> Emergency: 100
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Left Sidebar -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Document Upload Section -->
+                <div class="bg-white rounded-xl shadow p-6">
+                    <h2 class="text-lg font-semibold mb-4 text-gray-800 flex items-center">
+                        <i class="fas fa-file-upload mr-2 text-blue-600"></i> Upload Documents
+                    </h2>
+                    <div id="uploadSection" class="file-upload rounded-lg p-6 text-center cursor-pointer mb-4">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
+                        <p class="text-gray-500 mb-2">Drag & drop files here or click to browse</p>
+                        <p class="text-sm text-gray-400">Supported formats: PDF, TXT, DOCX (Max 16MB)</p>
+                        <input type="file" id="fileInput" class="hidden" accept=".pdf,.txt,.docx">
+                    </div>
+                    <button id="uploadBtn" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition flex items-center justify-center">
+                        <i class="fas fa-upload mr-2"></i> Upload Document
+                    </button>
+                    <div id="uploadProgress" class="hidden mt-4">
+                        <div class="flex justify-between text-sm text-gray-600 mb-1">
+                            <span>Uploading...</span>
+                            <span id="uploadPercent">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div id="uploadBar" class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div id="uploadSuccess" class="hidden mt-4 p-3 bg-green-100 text-green-800 rounded-lg text-sm"></div>
+                    <div id="uploadError" class="hidden mt-4 p-3 bg-red-100 text-red-800 rounded-lg text-sm"></div>
+                </div>
+
+                <!-- Document Management Section -->
+                <div class="bg-white rounded-xl shadow p-6">
+                    <h2 class="text-lg font-semibold mb-4 text-gray-800 flex items-center">
+                        <i class="fas fa-folder-open mr-2 text-blue-600"></i> Document Library
+                    </h2>
+                    <div class="mb-4">
+                        <input type="text" id="docSearch" placeholder="Search documents..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div id="documentList" class="space-y-2 max-h-96 overflow-y-auto">
+                        <!-- Documents will be loaded here -->
+                        <div class="text-center text-gray-500 py-4">
+                            <i class="fas fa-spinner fa-spin mr-2"></i> Loading documents...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Links Section -->
+                <div class="bg-white rounded-xl shadow p-6">
+                    <h2 class="text-lg font-semibold mb-4 text-gray-800 flex items-center">
+                        <i class="fas fa-link mr-2 text-blue-600"></i> Quick Links
+                    </h2>
+                    <div class="space-y-2">
+                        <a href="https://cybercrime.gov.in" target="_blank" class="block px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition flex items-center">
+                            <i class="fas fa-shield-alt mr-2 text-blue-600"></i> Cyber Crime Reporting
+                        </a>
+                        <a href="https://passportindia.gov.in" target="_blank" class="block px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition flex items-center">
+                            <i class="fas fa-passport mr-2 text-blue-600"></i> Passport Services
+                        </a>
+                        <a href="https://rtionline.gov.in" target="_blank" class="block px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition flex items-center">
+                            <i class="fas fa-file-alt mr-2 text-blue-600"></i> RTI Online
+                        </a>
+                        <a href="https://mahapolice.gov.in" target="_blank" class="block px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition flex items-center">
+                            <i class="fas fa-landmark mr-2 text-blue-600"></i> Maharashtra Police
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Interface -->
+            <div class="lg:col-span-3">
+                <div class="bg-white rounded-xl shadow overflow-hidden">
+                    <!-- Chat Header -->
+                    <div class="bg-blue-600 text-white p-4 flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center mr-3">
+                                <i class="fas fa-robot text-xl"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-semibold">Nashik Police AI Assistant</h2>
+                                <p class="text-xs opacity-80" id="connectionStatus">
+                                    <i class="fas fa-circle text-green-400 mr-1"></i> Connected
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="clearChatBtn" class="p-2 rounded-full hover:bg-blue-700 transition">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                            <button id="suggestionsBtn" class="p-2 rounded-full hover:bg-blue-700 transition">
+                                <i class="fas fa-lightbulb"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Chat Messages -->
+                    <div id="chatContainer" class="chat-container p-4 overflow-y-auto">
+                        <div id="welcomeMessage" class="text-center py-8">
+                            <div class="w-16 h-16 mx-auto rounded-full bg-blue-100 flex items-center justify-center mb-4">
+                                <i class="fas fa-robot text-3xl text-blue-600"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-800 mb-2">Welcome to Nashik Police AI Assistant</h3>
+                            <p class="text-gray-600 mb-6 max-w-md mx-auto">Ask me anything about Nashik Police services, cyber safety, recruitment, or upload documents for specific information.</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-lg mx-auto">
+                                <button class="suggestion-chip px-4 py-2 bg-gray-100 rounded-full text-sm text-gray-700 hover:bg-blue-600 hover:text-white transition">
+                                    How to file a police complaint?
+                                </button>
+                                <button class="suggestion-chip px-4 py-2 bg-gray-100 rounded-full text-sm text-gray-700 hover:bg-blue-600 hover:text-white transition">
+                                    Cyber safety tips
+                                </button>
+                                <button class="suggestion-chip px-4 py-2 bg-gray-100 rounded-full text-sm text-gray-700 hover:bg-blue-600 hover:text-white transition">
+                                    Police recruitment process
+                                </button>
+                                <button class="suggestion-chip px-4 py-2 bg-gray-100 rounded-full text-sm text-gray-700 hover:bg-blue-600 hover:text-white transition">
+                                    How to file RTI application?
+                                </button>
+                            </div>
+                        </div>
+                        <div id="chatMessages" class="space-y-4">
+                            <!-- Messages will be appended here -->
+                        </div>
+                    </div>
+
+                    <!-- Suggestions Panel -->
+                    <div id="suggestionsPanel" class="hidden border-t border-gray-200 p-4 bg-gray-50">
+                        <h3 class="font-medium text-gray-700 mb-3 flex items-center">
+                            <i class="fas fa-lightbulb mr-2 text-yellow-500"></i> Suggested Topics
+                        </h3>
+                        <div id="suggestionsList" class="flex flex-wrap gap-2">
+                            <!-- Suggestions will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Chat Input -->
+                    <div class="border-t border-gray-200 p-4 bg-white">
+                        <div class="relative">
+                            <textarea id="messageInput" rows="1" placeholder="Type your question here..." class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                            <button id="sendMessageBtn" class="absolute right-3 bottom-3 p-2 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                        <div class="flex justify-between items-center mt-2">
+                            <div class="text-xs text-gray-500">
+                                <span id="charCount">0</span>/500 characters
+                            </div>
+                            <div class="flex space-x-2">
+                                <button id="voiceInputBtn" class="p-2 text-gray-500 hover:text-blue-600 transition">
+                                    <i class="fas fa-microphone"></i>
+                                </button>
+                                <button id="attachFileBtn" class="p-2 text-gray-500 hover:text-blue-600 transition">
+                                    <i class="fas fa-paperclip"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Emergency Modal -->
+    <div id="emergencyModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl max-w-md w-full p-6 mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-red-600 flex items-center">
+                    <i class="fas fa-exclamation-triangle mr-2"></i> Emergency Alert
+                </h3>
+                <button id="closeEmergencyModal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <p class="text-gray-700">This is an emergency alert. Please call the appropriate emergency number immediately:</p>
+                <div class="bg-red-50 p-4 rounded-lg">
+                    <div class="flex items-center mb-2">
+                        <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                            <i class="fas fa-phone-alt text-red-600"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold">Police Emergency</p>
+                            <p class="text-2xl font-bold text-red-600">100</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                            <i class="fas fa-phone-alt text-red-600"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold">Universal Emergency</p>
+                            <p class="text-2xl font-bold text-red-600">112</p>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-500">Note: This chatbot is not monitored for emergency response. For immediate assistance, please call the numbers above.</p>
+            </div>
+            <div class="mt-6 flex justify-end space-x-3">
+                <button id="cancelEmergencyBtn" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition">
+                    Cancel
+                </button>
+                <a href="tel:100" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center justify-center">
+                    <i class="fas fa-phone-alt mr-2"></i> Call 100 Now
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const chatContainer = document.getElementById('chatContainer');
+            const chatMessages = document.getElementById('chatMessages');
+            const messageInput = document.getElementById('messageInput');
+            const sendMessageBtn = document.getElementById('sendMessageBtn');
+            const charCount = document.getElementById('charCount');
+            const clearChatBtn = document.getElementById('clearChatBtn');
+            const suggestionsBtn = document.getElementById('suggestionsBtn');
+            const suggestionsPanel = document.getElementById('suggestionsPanel');
+            const suggestionsList = document.getElementById('suggestionsList');
+            const welcomeMessage = document.getElementById('welcomeMessage');
+            const emergencyBtn = document.getElementById('emergencyBtn');
+            const emergencyModal = document.getElementById('emergencyModal');
+            const closeEmergencyModal = document.getElementById('closeEmergencyModal');
+            const cancelEmergencyBtn = document.getElementById('cancelEmergencyBtn');
+            const uploadSection = document.getElementById('uploadSection');
+            const fileInput = document.getElementById('fileInput');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const uploadProgress = document.getElementById('uploadProgress');
+            const uploadBar = document.getElementById('uploadBar');
+            const uploadPercent = document.getElementById('uploadPercent');
+            const uploadSuccess = document.getElementById('uploadSuccess');
+            const uploadError = document.getElementById('uploadError');
+            const documentList = document.getElementById('documentList');
+            const docSearch = document.getElementById('docSearch');
+            const connectionStatus = document.getElementById('connectionStatus');
+            const voiceInputBtn = document.getElementById('voiceInputBtn');
+            const attachFileBtn = document.getElementById('attachFileBtn');
+
+            // Variables
+            let isTyping = false;
+            let chatHistory = [];
+            let recognition;
+            
+            // Initialize the chat with welcome message
+            fetch('/welcome')
+                .then(response => response.json())
+                .then(data => {
+                    if (welcomeMessage) {
+                        welcomeMessage.querySelector('h3').textContent = data.message.split('\n')[0];
+                        welcomeMessage.querySelector('p').textContent = data.message.split('\n')[1];
+                        
+                        const suggestionsContainer = welcomeMessage.querySelector('.grid');
+                        suggestionsContainer.innerHTML = '';
+                        
+                        data.suggestions.forEach(suggestion => {
+                            const button = document.createElement('button');
+                            button.className = 'suggestion-chip px-4 py-2 bg-gray-100 rounded-full text-sm text-gray-700 hover:bg-blue-600 hover:text-white transition';
+                            button.textContent = suggestion.split(' / ')[0];
+                            button.addEventListener('click', () => {
+                                sendMessage(suggestion.split(' / ')[0]);
+                            });
+                            suggestionsContainer.appendChild(button);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching welcome message:', error);
+                });
+
+            // Load document list
+            loadDocuments();
+
+            // Event Listeners
+            messageInput.addEventListener('input', function() {
+                const count = this.value.length;
+                charCount.textContent = count;
+                
+                if (count > 500) {
+                    charCount.classList.add('text-red-500');
+                } else {
+                    charCount.classList.remove('text-red-500');
+                }
+                
+                // Auto-resize textarea
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+
+            sendMessageBtn.addEventListener('click', sendUserMessage);
+            
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendUserMessage();
+                }
+            });
+
+            clearChatBtn.addEventListener('click', clearChat);
+            
+            suggestionsBtn.addEventListener('click', toggleSuggestionsPanel);
+            
+            emergencyBtn.addEventListener('click', () => {
+                emergencyModal.classList.remove('hidden');
+            });
+            
+            closeEmergencyModal.addEventListener('click', () => {
+                emergencyModal.classList.add('hidden');
+            });
+            
+            cancelEmergencyBtn.addEventListener('click', () => {
+                emergencyModal.classList.add('hidden');
+            });
+            
+            uploadSection.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length > 0) {
+                    const fileName = fileInput.files[0].name;
+                    uploadSection.innerHTML = `
+                        <i class="fas fa-file-alt text-4xl text-blue-600 mb-2"></i>
+                        <p class="text-gray-700 font-medium truncate">${fileName}</p>
+                        <p class="text-sm text-gray-500">Ready to upload</p>
+                    `;
+                }
+            });
+            
+            uploadBtn.addEventListener('click', uploadDocument);
+            
+            docSearch.addEventListener('input', searchDocuments);
+            
+            voiceInputBtn.addEventListener('click', toggleVoiceRecognition);
+            
+            attachFileBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            // Functions
+            function sendUserMessage() {
+                const message = messageInput.value.trim();
+                if (message.length === 0) return;
+                
+                if (message.length > 500) {
+                    alert('Message must be 500 characters or less');
+                    return;
+                }
+                
+                sendMessage(message);
+                messageInput.value = '';
+                charCount.textContent = '0';
+                messageInput.style.height = 'auto';
+            }
+            
+            function sendMessage(message) {
+                // Hide welcome message if it's the first user message
+                if (welcomeMessage && chatHistory.length === 0) {
+                    welcomeMessage.style.display = 'none';
+                }
+                
+                // Add user message to chat
+                addMessage(message, 'user');
+                
+                // Show typing indicator
+                showTypingIndicator();
+                
+                // Check for emergency keywords
+                const emergencyKeywords = [
+                    "emergency", "help me", "urgent", "dying", "danger", "immediate assistance",
+                    "आपातकालीन", "मदद करो", "तत्काल", "खतरा", "तात्काल सहायता",
+                    "आणीबाणी", "मदत करा", "तातडीचे", "धोका", "तात्काळ मदत"
+                ];
+                
+                if (emergencyKeywords.some(keyword => message.toLowerCase().includes(keyword.toLowerCase()))) {
+                    setTimeout(() => {
+                        hideTypingIndicator();
+                        addMessage(
+                            "महत्वपूर्ण सूचना: हि आणीबाणीची परिस्थिती असल्यास, कृपया तात्काळ 100 (पोलीस) किंवा 112 (सार्वत्रिक आपात्कालीन क्रमांक) वर फोन करा. हा चॅटबॉट आपात्कालीन प्रतिसादासाठी नियंत्रित केलेला नाही.\n\nIMPORTANT: If this is an emergency, please call 100 (Police) or 112 (Universal Emergency Number) immediately. This chatbot is not monitored for emergency response.",
+                            'bot',
+                            [],
+                            true
+                        );
+                    }, 1000);
+                    return;
+                }
+                
+                // Send message to backend
+                fetch('/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        question: message
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    hideTypingIndicator();
+                    
+                    if (data.error) {
+                        addMessage("Sorry, there was an error processing your request. Please try again later.", 'bot');
+                        return;
+                    }
+                    
+                    // Add bot response to chat
+                    addMessage(data.answer, 'bot', data.sources);
+                    
+                    // Add to chat history
+                    chatHistory.push({
+                        question: message,
+                        answer: data.answer,
+                        sources: data.sources
+                    });
+                    
+                    // Get suggestions based on user input
+                    getSuggestions(message);
+                })
+                .catch(error => {
+                    hideTypingIndicator();
+                    addMessage("Sorry, there was an error connecting to the server. Please try again later.", 'bot');
+                    console.error('Error:', error);
+                });
+            }
+            
+            function addMessage(text, sender, sources = [], isEmergency = false) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}-message ${isEmergency ? 'emergency-message' : ''} p-4`;
+                
+                // Format the text with line breaks
+                const formattedText = text.replace(/\n/g, '<br>');
+                messageDiv.innerHTML = `
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mr-3">
+                            ${sender === 'user' ? 
+                                '<div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center"><i class="fas fa-user text-blue-600"></i></div>' : 
+                                '<div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center"><i class="fas fa-robot text-gray-600"></i></div>'}
+                        </div>
+                        <div class="flex-1">
+                            <div class="text-sm">${formattedText}</div>
+                        </div>
+                    </div>
+                `;
+                
+                chatMessages.appendChild(messageDiv);
+                
+                // Add source documents if available
+                if (sources && sources.length > 0) {
+                    const sourcesDiv = document.createElement('div');
+                    sourcesDiv.className = 'mt-2 ml-11';
+                    
+                    const sourcesHeader = document.createElement('div');
+                    sourcesHeader.className = 'text-xs text-gray-500 mb-1 cursor-pointer flex items-center';
+                    sourcesHeader.innerHTML = `
+                        <i class="fas fa-chevron-down mr-1 text-xs"></i> 
+                        Source Documents (${sources.length})
+                    `;
+                    
+                    const sourcesContent = document.createElement('div');
+                    sourcesContent.className = 'source-document bg-gray-50 rounded-lg p-3 mt-1';
+                    
+                    sources.forEach((source, index) => {
+                        const sourceDiv = document.createElement('div');
+                        sourceDiv.className = 'mb-2 last:mb-0';
+                        
+                        const sourceHeader = document.createElement('div');
+                        sourceHeader.className = 'text-xs font-medium text-gray-700 mb-1';
+                        sourceHeader.textContent = `Source ${index + 1}: ${source.metadata.source || 'Unknown'}`;
+                        
+                        const sourceText = document.createElement('div');
+                        sourceText.className = 'text-xs text-gray-600 bg-white p-2 rounded';
+                        sourceText.textContent = source.content.length > 300 ? 
+                            source.content.substring(0, 300) + '...' : 
+                            source.content;
+                        
+                        sourceDiv.appendChild(sourceHeader);
+                        sourceDiv.appendChild(sourceText);
+                        sourcesContent.appendChild(sourceDiv);
+                    });
+                    
+                    sourcesDiv.appendChild(sourcesHeader);
+                    sourcesDiv.appendChild(sourcesContent);
+                    messageDiv.appendChild(sourcesDiv);
+                    
+                    // Toggle source documents
+                    sourcesHeader.addEventListener('click', () => {
+                        sourcesContent.classList.toggle('expanded');
+                        const icon = sourcesHeader.querySelector('i');
+                        icon.classList.toggle('fa-chevron-down');
+                        icon.classList.toggle('fa-chevron-up');
+                    });
+                }
+                
+                // Scroll to bottom
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+            
+            function showTypingIndicator() {
+                if (isTyping) return;
+                
+                isTyping = true;
+                
+                const typingDiv = document.createElement('div');
+                typingDiv.className = 'message bot-message p-4';
+                typingDiv.id = 'typingIndicator';
+                typingDiv.innerHTML = `
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 mr-3">
+                            <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                                <i class="fas fa-robot text-gray-600"></i>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <div class="typing-indicator">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                chatMessages.appendChild(typingDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+            
+            function hideTypingIndicator() {
+                isTyping = false;
+                const typingIndicator = document.getElementById('typingIndicator');
+                if (typingIndicator) {
+                    typingIndicator.remove();
+                }
+            }
+            
+            function clearChat() {
+                if (confirm('Are you sure you want to clear the chat history?')) {
+                    chatMessages.innerHTML = '';
+                    chatHistory = [];
+                    
+                    // Show welcome message again
+                    if (welcomeMessage) {
+                        welcomeMessage.style.display = 'block';
+                    }
+                    
+                    // Hide suggestions panel
+                    suggestionsPanel.classList.add('hidden');
+                }
+            }
+            
+            function toggleSuggestionsPanel() {
+                suggestionsPanel.classList.toggle('hidden');
+                
+                if (!suggestionsPanel.classList.contains('hidden') && suggestionsList.children.length === 0) {
+                    // Load general suggestions if panel is empty
+                    getSuggestions();
+                }
+            }
+            
+            function getSuggestions(input = '') {
+                fetch('/suggest', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        input: input
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    suggestionsList.innerHTML = '';
+                    
+                    if (data.suggestions && data.suggestions.length > 0) {
+                        data.suggestions.forEach(suggestion => {
+                            const chip = document.createElement('button');
+                            chip.className = 'suggestion-chip px-3 py-1.5 bg-gray-100 rounded-full text-xs text-gray-700 hover:bg-blue-600 hover:text-white transition';
+                            chip.textContent = suggestion;
+                            chip.addEventListener('click', () => {
+                                sendMessage(suggestion);
+                                suggestionsPanel.classList.add('hidden');
+                            });
+                            suggestionsList.appendChild(chip);
+                        });
+                    } else {
+                        suggestionsList.innerHTML = '<p class="text-gray-500 text-sm">No suggestions available</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error getting suggestions:', error);
+                    suggestionsList.innerHTML = '<p class="text-gray-500 text-sm">Error loading suggestions</p>';
+                });
+            }
+            
+            function uploadDocument() {
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    uploadError.textContent = 'Please select a file first';
+                    uploadError.classList.remove('hidden');
+                    setTimeout(() => {
+                        uploadError.classList.add('hidden');
+                    }, 3000);
+                    return;
+                }
+                
+                const file = fileInput.files[0];
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                uploadProgress.classList.remove('hidden');
+                uploadBtn.disabled = true;
+                
+                // Simulate upload progress (in a real app, you'd use XMLHttpRequest with progress event)
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += 5;
+                    if (progress > 90) {
+                        clearInterval(interval);
+                        return;
+                    }
+                    uploadBar.style.width = `${progress}%`;
+                    uploadPercent.textContent = `${progress}%`;
+                }, 100);
+                
+                fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    clearInterval(interval);
+                    uploadBar.style.width = '100%';
+                    uploadPercent.textContent = '100%';
+                    
+                    if (data.error) {
+                        uploadError.textContent = data.error;
+                        uploadError.classList.remove('hidden');
+                    } else {
+                        uploadSuccess.innerHTML = `
+                            <i class="fas fa-check-circle mr-2"></i> 
+                            ${data.message} (${data.chunks} chunks processed)
+                        `;
+                        uploadSuccess.classList.remove('hidden');
+                        
+                        // Reset file input
+                        fileInput.value = '';
+                        uploadSection.innerHTML = `
+                            <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
+                            <p class="text-gray-500 mb-2">Drag & drop files here or click to browse</p>
+                            <p class="text-sm text-gray-400">Supported formats: PDF, TXT, DOCX (Max 16MB)</p>
+                        `;
+                        
+                        // Reload document list
+                        loadDocuments();
+                    }
+                })
+                .catch(error => {
+                    clearInterval(interval);
+                    uploadError.textContent = 'Upload failed: ' + error.message;
+                    uploadError.classList.remove('hidden');
+                })
+                .finally(() => {
+                    setTimeout(() => {
+                        uploadProgress.classList.add('hidden');
+                        uploadBtn.disabled = false;
+                        uploadBar.style.width = '0%';
+                        uploadPercent.textContent = '0%';
+                    }, 2000);
+                });
+            }
+            
+            function loadDocuments() {
+                fetch('/documents')
+                    .then(response => response.json())
+                    .then(data => {
+                        documentList.innerHTML = '';
+                        
+                        if (data.documents && data.documents.length > 0) {
+                            data.documents.forEach(doc => {
+                                const docDiv = document.createElement('div');
+                                docDiv.className = 'document-item flex justify-between items-center p-3 border border-gray-200 rounded-lg';
+                                
+                                const docName = document.createElement('div');
+                                docName.className = 'truncate flex-1 mr-2';
+                                docName.textContent = doc.split('/').pop() || doc;
+                                
+                                const docActions = document.createElement('div');
+                                docActions.className = 'flex space-x-2';
+                                
+                                const viewBtn = document.createElement('button');
+                                viewBtn.className = 'p-1 text-blue-600 hover:text-blue-800';
+                                viewBtn.innerHTML = '<i class="fas fa-eye"></i>';
+                                viewBtn.title = 'View document';
+                                viewBtn.addEventListener('click', () => {
+                                    // In a real app, you would implement document viewing
+                                    alert('Document viewing functionality would be implemented here');
+                                });
+                                
+                                const deleteBtn = document.createElement('button');
+                                deleteBtn.className = 'p-1 text-red-600 hover:text-red-800';
+                                deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                                deleteBtn.title = 'Delete document';
+                                deleteBtn.addEventListener('click', () => {
+                                    if (confirm('Are you sure you want to delete this document?')) {
+                                        deleteDocument(doc);
+                                    }
+                                });
+                                
+                                docActions.appendChild(viewBtn);
+                                docActions.appendChild(deleteBtn);
+                                docDiv.appendChild(docName);
+                                docDiv.appendChild(docActions);
+                                documentList.appendChild(docDiv);
+                            });
+                        } else {
+                            documentList.innerHTML = `
+                                <div class="text-center text-gray-500 py-4">
+                                    <i class="fas fa-folder-open mr-2"></i> No documents uploaded yet
+                                </div>
+                            `;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading documents:', error);
+                        documentList.innerHTML = `
+                            <div class="text-center text-red-500 py-4">
+                                <i class="fas fa-exclamation-triangle mr-2"></i> Error loading documents
+                            </div>
+                        `;
+                    });
+            }
+            
+            function deleteDocument(docId) {
+                fetch(`/documents/${encodeURIComponent(docId)}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert('Error deleting document: ' + data.error);
+                    } else {
+                        // Reload document list
+                        loadDocuments();
+                    }
+                })
+                .catch(error => {
+                    alert('Error deleting document: ' + error.message);
+                });
+            }
+            
+            function searchDocuments() {
+                const query = docSearch.value.toLowerCase();
+                const documents = documentList.querySelectorAll('.document-item');
+                
+                documents.forEach(doc => {
+                    const docName = doc.querySelector('div:first-child').textContent.toLowerCase();
+                    if (docName.includes(query)) {
+                        doc.style.display = 'flex';
+                    } else {
+                        doc.style.display = 'none';
+                    }
+                });
+            }
+            
+            function toggleVoiceRecognition() {
+                if (!('webkitSpeechRecognition' in window)) {
+                    alert('Speech recognition is not supported in your browser');
+                    return;
+                }
+                
+                if (voiceInputBtn.classList.contains('text-red-500')) {
+                    // Stop recognition
+                    if (recognition) {
+                        recognition.stop();
+                    }
+                    voiceInputBtn.classList.remove('text-red-500');
+                    voiceInputBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+                    return;
+                }
+                
+                // Start recognition
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                
+                recognition.onstart = function() {
+                    voiceInputBtn.classList.add('text-red-500');
+                    voiceInputBtn.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+                };
+                
+                recognition.onresult = function(event) {
+                    const transcript = event.results[0][0].transcript;
+                    messageInput.value = transcript;
+                    messageInput.dispatchEvent(new Event('input'));
+                };
+                
+                recognition.onerror = function(event) {
+                    console.error('Speech recognition error', event.error);
+                    voiceInputBtn.classList.remove('text-red-500');
+                    voiceInputBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+                };
+                
+                recognition.onend = function() {
+                    voiceInputBtn.classList.remove('text-red-500');
+                    voiceInputBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+                };
+                
+                recognition.start();
+            }
+            
+            // Check server connection periodically
+            function checkConnection() {
+                fetch('/health')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'healthy') {
+                            connectionStatus.innerHTML = '<i class="fas fa-circle text-green-400 mr-1"></i> Connected';
+                        } else {
+                            connectionStatus.innerHTML = '<i class="fas fa-circle text-yellow-400 mr-1"></i> Connection issues';
+                        }
+                    })
+                    .catch(() => {
+                        connectionStatus.innerHTML = '<i class="fas fa-circle text-red-400 mr-1"></i> Disconnected';
+                    });
+            }
+            
+            // Initial connection check
+            checkConnection();
+            
+            // Check connection every 30 seconds
+            setInterval(checkConnection, 30000);
+        });
+    </script>
+</body>
+</html>

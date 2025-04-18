@@ -32,7 +32,7 @@ app.config['UPLOAD_FOLDER'] = tempfile.mkdtemp()
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max upload size
 
 # Initialize OpenAI
-openai.api_key = os.getenv("NASHIK_OPENAI_API_KEY")
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Initialize persistent ChromaDB
 CHROMA_PERSIST_DIR = "./chroma_db"

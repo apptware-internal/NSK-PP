@@ -425,8 +425,8 @@ def delete_document(doc_id):
     """Delete a document from the vector store."""
     try:
         # Delete the document
-        vectorstore.delete(filter={"source": doc_id})
-        vectorstore.persist()
+        vectorstore.delete(where={"source": doc_id})
+        #vectorstore.persist()
         
         return jsonify({"message": f"Document deleted: {doc_id}"})
     except Exception as e:

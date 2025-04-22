@@ -1,0 +1,42 @@
+# GITHUB ACTIONS WORKFLOW YAML FOR DEPLOYING LATEST CHANGES TO CHATBOT SOURCE CODE IN GITHUB TO PRODUCTION SERVERS.
+name: nashik-police-chatbot-pipeline
+run-name: Deployment initiated by ${{github.actor}}
+
+# USING workflow_dispatch TO RESTRICT THE PIPELINE EXECUTIONS TO MANUAL INPUTS
+on: 
+  workflow_dispatch:
+
+# STEPS TO BE PERFORMED FOR/DURING THE DEPLOYMENT PROCESS
+jobs:
+  deploy-chatbot:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Pull latest code from GitHub.
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Synching latest code from git with server.
+        uses: burnett01/rsync-deployments@7.0.2
+        with:
+          switches: -avzr --delete
+          path: ./
+          remote_path: police-website-chatbot/NSK-PP
+          remote_host: ${{ secrets.SERVER_HOST }}
+          remote_port: ${{ secrets.SERVER_PORT }}
+          remote_user: ${{ secrets.SERVER_USER }}
+          remote_key: ${{ secrets.SERVER_SSH_KEY }}
+
+      - name: Restart supervisor on workload server.
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: ${{ secrets.SERVER_PORT }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd police-website-chatbot/NSK-PP/
+            source chatbot/bin/activate
+            pip install -r requirements.txt
+            sudo supervisorctl restart chatbot

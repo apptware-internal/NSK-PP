@@ -8,8 +8,8 @@ on:
 
 # STEPS TO BE PERFORMED FOR/DURING THE DEPLOYMENT PROCESS
 jobs:
-  deploy-chatbot:
-    runs-on: ubuntu-24.04
+  deploy:
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Pull latest code from GitHub.
